@@ -4,6 +4,16 @@
 
 ---
 
+## 📚 Quick Navigation by Difficulty Level
+
+Choose your learning path based on your current level:
+
+- **[🌱 Foundation Level](./plans/basic.md)** - Start here. Build the unshakable base.
+- **[🚀 Intermediate Level](./plans/intermediate.md)** - Build capability. Become productive.
+- **[🔥 Advanced & Frontier Level](./plans/advance.md)** - Master the cutting edge. Build at scale.
+
+---
+
 ## Table of Contents
 
 1. [Master Map (Big Picture)](#1-master-map-big-picture)
