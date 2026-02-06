@@ -8,6 +8,16 @@
 
 1. [Master Map (Big Picture)](#1-master-map-big-picture)
 2. [Domain-Wise Deep Breakdown](#2-domain-wise-deep-breakdown)
+   - [Domain A: Thinking & Problem-Solving](#domain-a-thinking--problem-solving)
+   - [Domain B: Mathematics](#domain-b-mathematics)
+   - [Domain C: Computer Science](#domain-c-computer-science-theory--systems)
+   - [Domain D: Full-Stack Web Development](#domain-d-full-stack-web-development)
+   - [Domain E: Artificial Intelligence](#domain-e-artificial-intelligence-ai-ml-dl-nlp-agents-rag-automation)
+   - [Domain F: System Design & Architecture](#domain-f-system-design--architecture)
+   - [Domain G: UI/UX & Product Design](#domain-g-uiux--product-design)
+   - [Domain H: Media Creation](#domain-h-media-creation)
+   - [Domain I: Automation & Productivity Systems](#domain-i-automation--productivity-systems)
+   - [Domain J: Business, Startups & Monetization](#domain-j-business-startups--monetization-technical-focus)
 3. [Skill Dependency Graph](#3-skill-dependency-graph)
 4. [Execution Roadmap](#4-execution-roadmap)
 
@@ -601,7 +611,7 @@ AI Agents     → LLMs, Prompt Engineering, API Integration
 
 ### Phase 1: Foundations (Weeks 1–8)
 
-**Goal:** Build the unshakeable base everything else stands on.
+**Goal:** Build the unshakable base everything else stands on.
 
 ```
 Week 1–2: Thinking & Problem-Solving
