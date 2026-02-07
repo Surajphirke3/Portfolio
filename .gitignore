@@ -37,3 +37,18 @@ next-env.d.ts
 
 # Sentry Config File
 .sentryclirc
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+.venv/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
