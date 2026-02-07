@@ -11,7 +11,8 @@ import sys
 import time
 import json
 import threading
-from typing import Optional
+from typing import Optional, List, Dict
+import re
 from dotenv import load_dotenv
 
 try:
@@ -56,6 +57,20 @@ CATEGORIES = [
 ]
 
 
+PLAN_DOMAIN_MAP = {
+    "Thinking & Problem-Solving": "thinking",
+    "Mathematics": "mathematics",
+    "Computer Science (Theory + Systems)": "computer_science",
+    "Full-Stack Web Development": "web_development",
+    "Artificial Intelligence": "ai_ml",
+    "System Design & Architecture": "system_design",
+    "UI/UX & Product Design": "ui_ux",
+    "Media Creation": "media",
+    "Automation & Productivity Systems": "automation",
+    "Business, Startups & Monetization": "business"
+}
+
+
 def show_processing(stop_event: threading.Event) -> None:
     """Display a processing spinner animation."""
     spinner = ['|', '/', '-', '\\']
@@ -74,41 +89,144 @@ def sanitize_filename(title: str) -> str:
     return "".join(c if c.isalnum() else "_" for c in title).lower()
 
 
+def _parse_table_row(line: str) -> Optional[str]:
+    """Extract the topic title from a markdown table row."""
+    if not line.strip().startswith("|"):
+        return None
+    cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+    if len(cells) < 2:
+        return None
+    if cells[0].lower() in {"#", "---"}:
+        return None
+    if cells[1].lower() == "topic":
+        return None
+    if all(set(cell) <= {"-", " "} for cell in cells):
+        return None
+    return cells[1] or None
+
+
+def read_plan_titles() -> List[Dict[str, str]]:
+    """Read plan files and extract topic titles with domain and difficulty."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    plans_dir = os.path.join(base_dir, "plans")
+    if not os.path.isdir(plans_dir):
+        return []
+
+    entries: List[Dict[str, str]] = []
+    plan_files = [
+        ("basic.md", "Basic"),
+        ("intermediate.md", "Intermediate"),
+        ("advance.md", "Advanced")
+    ]
+
+    domain_heading_pattern = re.compile(r"^##\s+Domain\s+[A-Z]+:\s+(.+)$")
+
+    for filename, difficulty in plan_files:
+        file_path = os.path.join(plans_dir, filename)
+        if not os.path.isfile(file_path):
+            continue
+
+        current_domain_display = None
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            for line in f:
+                match = domain_heading_pattern.match(line.strip())
+                if match:
+                    current_domain_display = match.group(1).strip()
+                    continue
+
+                topic = _parse_table_row(line)
+                if not topic or not current_domain_display:
+                    continue
+
+                domain_key = PLAN_DOMAIN_MAP.get(current_domain_display)
+                if not domain_key:
+                    continue
+
+                entries.append({
+                    "title": topic,
+                    "domain": domain_key,
+                    "domain_display": DOMAINS[domain_key],
+                    "difficulty": difficulty
+                })
+
+    # Deduplicate by title+domain+difficulty
+    unique = {}
+    for entry in entries:
+        key = (entry["title"], entry["domain"], entry["difficulty"])
+        unique[key] = entry
+    return list(unique.values())
+
+
 def get_inputs() -> dict:
     """Gather user inputs via interactive CLI."""
     print("\n📚 Learning Plan Content Generator")
     print("=" * 40)
-    
-    # Title input
-    title = questionary.text(
-        "📘 Enter content title:",
-        validate=lambda x: len(x.strip()) > 0 or "Title is required"
+
+    use_plans = questionary.confirm(
+        "📚 Use a title from the plans folder?",
+        default=True
     ).ask()
-    
-    if title is None:
-        raise KeyboardInterrupt("User cancelled")
-    
-    # Domain selection
-    domain_choices = list(DOMAINS.values())
-    domain_display = questionary.select(
-        "🎯 Select domain:",
-        choices=domain_choices
-    ).ask()
-    
-    if domain_display is None:
-        raise KeyboardInterrupt("User cancelled")
-    
-    # Get domain key from display value
-    domain = next(k for k, v in DOMAINS.items() if v == domain_display)
-    
-    # Difficulty level
-    difficulty = questionary.select(
-        "📊 Select difficulty level:",
-        choices=DIFFICULTY_LEVELS
-    ).ask()
-    
-    if difficulty is None:
-        raise KeyboardInterrupt("User cancelled")
+
+    title = None
+    domain = None
+    domain_display = None
+    difficulty = None
+
+    if use_plans:
+        plan_entries = read_plan_titles()
+        if plan_entries:
+            choices = [
+                f"{e['difficulty']} • {e['domain_display']} • {e['title']}"
+                for e in plan_entries
+            ]
+            selection = questionary.select(
+                "📘 Select content title from plans:",
+                choices=choices
+            ).ask()
+
+            if selection is None:
+                raise KeyboardInterrupt("User cancelled")
+
+            selected_entry = plan_entries[choices.index(selection)]
+            title = selected_entry["title"]
+            domain = selected_entry["domain"]
+            domain_display = selected_entry["domain_display"]
+            difficulty = selected_entry["difficulty"]
+        else:
+            print("\n⚠️ No plan titles found. Switching to manual input.")
+
+    if not title or not domain or not domain_display or not difficulty:
+        # Title input
+        title = questionary.text(
+            "📘 Enter content title:",
+            validate=lambda x: len(x.strip()) > 0 or "Title is required"
+        ).ask()
+
+        if title is None:
+            raise KeyboardInterrupt("User cancelled")
+
+        # Domain selection
+        domain_choices = list(DOMAINS.values())
+        domain_display = questionary.select(
+            "🎯 Select domain:",
+            choices=domain_choices
+        ).ask()
+
+        if domain_display is None:
+            raise KeyboardInterrupt("User cancelled")
+
+        # Get domain key from display value
+        domain = next(k for k, v in DOMAINS.items() if v == domain_display)
+
+        # Difficulty level
+        difficulty = questionary.select(
+            "📊 Select difficulty level:",
+            choices=DIFFICULTY_LEVELS
+        ).ask()
+
+        if difficulty is None:
+            raise KeyboardInterrupt("User cancelled")
     
     # Category selection
     category = questionary.select(
@@ -211,7 +329,7 @@ def generate_content(inputs: dict) -> Optional[str]:
     prompt = build_prompt(inputs)
     
     payload = {
-        "model": "llama-3.1-70b-versatile",
+        "model": "gptoss120b",
         "messages": [
             {
                 "role": "system",
